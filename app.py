@@ -1,28 +1,21 @@
+"""
+Copyright (c) Meta Platforms, Inc. and affiliates.
+All rights reserved.
+
+This source code is licensed under the license found in the
+LICENSE file in the root directory of this source tree.
+"""
+
 from tempfile import NamedTemporaryFile
 import torch
 import gradio as gr
 from audiocraft.models import MusicGen
 
 from audiocraft.data.audio import audio_write
-import subprocess, random, string
 
 
 MODEL = None
 
-def generate_random_string(length):
-    characters = string.ascii_letters + string.digits
-    return ''.join(random.choice(characters) for _ in range(length))
-
-def resize_video(input_path, output_path, target_width, target_height):
-    ffmpeg_cmd = [
-        'ffmpeg',
-        '-y',
-        '-i', input_path,
-        '-vf', f'scale={target_width}:{target_height}',
-        '-c:a', 'copy',
-        output_path
-    ]
-    subprocess.run(ffmpeg_cmd)
 
 def load_model(version):
     print("Loading model", version)
@@ -36,7 +29,7 @@ def predict(model, text, melody, duration, topk, topp, temperature, cfg_coef):
         MODEL = load_model(model)
 
     if duration > MODEL.lm.cfg.dataset.segment_duration:
-        raise gr.Error(" currently supports durations of up to 30 seconds!")
+        raise gr.Error("MusicGen currently supports durations of up to 30 seconds!")
     MODEL.set_generation_params(
         use_sampling=True,
         top_k=topk,
@@ -64,19 +57,21 @@ def predict(model, text, melody, duration, topk, topp, temperature, cfg_coef):
     output = output.detach().cpu().float()[0]
     with NamedTemporaryFile("wb", suffix=".wav", delete=False) as file:
         audio_write(file.name, output, MODEL.sample_rate, strategy="loudness", add_suffix=False)
-        waveform_video = gr.make_waveform(file.name, bg_color="#21b0fe" , bars_color=('#fe218b', '#fed700'), fg_alpha=1.0, bar_count=75)
-        random_string = generate_random_string(12)
-        random_string = f"/content/{random_string}.mp4"
-        resize_video(waveform_video, random_string, 1000, 500)
-    return random_string
+        waveform_video = gr.make_waveform(file.name)
+    return waveform_video
 
 
 with gr.Blocks() as demo:
     gr.Markdown(
         """
-        # CRESCENDO
+        # MusicGen
 
-        Welcome to CRESCENDO Audio Generation :)
+        This is the demo for [MusicGen](https://github.com/facebookresearch/audiocraft), a simple and controllable model for music generation
+        presented at: ["Simple and Controllable Music Generation"](https://huggingface.co/papers/2306.05284).
+        <br/>
+        <a href="https://huggingface.co/spaces/musicgen/MusicGen?duplicate=true" style="display: inline-block;margin-top: .5em;margin-right: .25em;" target="_blank">
+        <img style="margin-bottom: 0em;display: inline;margin-top: -.25em;" src="https://bit.ly/3gLdBN6" alt="Duplicate Space"></a>
+        for longer sequences, more control and no queue.</p>
         """
     )
     with gr.Row():
@@ -98,12 +93,58 @@ with gr.Blocks() as demo:
         with gr.Column():
             output = gr.Video(label="Generated Music")
     submit.click(predict, inputs=[model, text, melody, duration, topk, topp, temperature, cfg_coef], outputs=[output])
+    gr.Examples(
+        fn=predict,
+        examples=[
+            [
+                "An 80s driving pop song with heavy drums and synth pads in the background",
+                "./assets/bach.mp3",
+                "melody"
+            ],
+            [
+                "A cheerful country song with acoustic guitars",
+                "./assets/bolero_ravel.mp3",
+                "melody"
+            ],
+            [
+                "90s rock song with electric guitar and heavy drums",
+                None,
+                "medium"
+            ],
+            [
+                "a light and cheerly EDM track, with syncopated drums, aery pads, and strong emotions",
+                "./assets/bach.mp3",
+                "melody"
+            ],
+            [
+                "lofi slow bpm electro chill with organic samples",
+                None,
+                "medium",
+            ],
+        ],
+        inputs=[text, melody, model],
+        outputs=[output]
+    )
     gr.Markdown(
         """
-        ### More details 
+        ### More details
 
-        For More details Read CRESCENDO Docs ;)
+        The model will generate a short music extract based on the description you provided.
+        You can generate up to 30 seconds of audio.
+
+        We present 4 model variations:
+        1. Melody -- a music generation model capable of generating music condition on text and melody inputs. **Note**, you can also use text only.
+        2. Small -- a 300M transformer decoder conditioned on text only.
+        3. Medium -- a 1.5B transformer decoder conditioned on text only.
+        4. Large -- a 3.3B transformer decoder conditioned on text only (might OOM for the longest sequences.)
+
+        When using `melody`, ou can optionaly provide a reference audio from
+        which a broad melody will be extracted. The model will then try to follow both the description and melody provided.
+
+        You can also use your own GPU or a Google Colab by following the instructions on our repo.
+        See [github.com/facebookresearch/audiocraft](https://github.com/facebookresearch/audiocraft)
+        for more details.
         """
     )
 
-demo.queue().launch(share=True)
+demo.launch()
