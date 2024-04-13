@@ -1,11 +1,3 @@
-"""
-Copyright (c) Meta Platforms, Inc. and affiliates.
-All rights reserved.
-
-This source code is licensed under the license found in the
-LICENSE file in the root directory of this source tree.
-"""
-
 from tempfile import NamedTemporaryFile
 import torch
 import gradio as gr
@@ -66,14 +58,9 @@ def predict(texts, melodies):
 with gr.Blocks() as demo:
     gr.Markdown(
         """
-        # MusicGen
+        # CRESCENDO
 
-        This is the demo for [MusicGen](https://github.com/facebookresearch/audiocraft), a simple and controllable model for music generation
-        presented at: ["Simple and Controllable Music Generation"](https://huggingface.co/papers/2306.05284).
-        <br/>
-        <a href="https://huggingface.co/spaces/musicgen/MusicGen?duplicate=true" style="display: inline-block;margin-top: .5em;margin-right: .25em;" target="_blank">
-        <img style="margin-bottom: 0em;display: inline;margin-top: -.25em;" src="https://bit.ly/3gLdBN6" alt="Duplicate Space"></a>
-        for longer sequences, more control and no queue.</p>
+        Welcome to CRESCENDO Audio Generation :)
         """
     )
     with gr.Row():
@@ -114,17 +101,9 @@ with gr.Blocks() as demo:
         outputs=[output]
     )
     gr.Markdown("""
-    ### More details
+        ### More details 
 
-    The model will generate 12 seconds of audio based on the description you provided.
-    You can optionaly provide a reference audio from which a broad melody will be extracted.
-    The model will then try to follow both the description and melody provided.
-    All samples are generated with the `melody` model.
-  
-    You can also use your own GPU or a Google Colab by following the instructions on our repo.
-
-    See [github.com/facebookresearch/audiocraft](https://github.com/facebookresearch/audiocraft)
-    for more details.
-    """)
+        For More details Read CRESCENDO Docs ;)
+        """)
 
 demo.queue(max_size=15).launch()
